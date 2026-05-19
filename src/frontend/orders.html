@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopCloud - Order Service & Checkout Saga</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav>
+        <div class="logo">🛒 ShopCloud</div>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="user.html">Login</a></li>
+            <li><a href="products.html">Products</a></li>
+            <li><a href="orders.html">Orders</a></li>
+            <li><a href="notifications.html">Notifications</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="page-title">
+            <h2>🧾 Order Service</h2>
+            <p>Handles transactional cart checkout and traces multi-service Saga patterns across databases.</p>
+        </div>
+
+        <!-- Checkout and Saga flow -->
+        <div class="checkout-grid">
+            <!-- Left Side: Cart & Saga Tracker -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- Cart Card -->
+                <div class="card blue-glow">
+                    <h3>Shopping Cart</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 1rem;">Verify your catalog selections before initiating authorization.</p>
+                    
+                    <div id="cart-list">
+                        <!-- Loaded dynamically -->
+                    </div>
+                    
+                    <div style="margin-top: 1.5rem;">
+                        <div class="cart-summary-row">
+                            <span>Subtotal</span>
+                            <span id="cart-subtotal">$0.00</span>
+                        </div>
+                        <div class="cart-summary-row">
+                            <span>Cloud Transaction Tax</span>
+                            <span>$0.00 (Free Demo)</span>
+                        </div>
+                        <div class="cart-summary-total">
+                            <span>Total Estimated</span>
+                            <span id="cart-total">$0.00</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="startSagaCheckout()" id="checkout-btn" class="btn" style="width: 100%; margin-top: 1.5rem;" disabled>
+                        🔐 Initiate Secure Saga Checkout
+                    </button>
+                </div>
+
+                <!-- Saga Visualizer Stepper -->
+                <div class="saga-visualizer" id="saga-card" style="display: none;">
+                    <div class="saga-title">
+                        <span>⛓️ Saga Transaction Workflow Orchestrator</span>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: -0.5rem; margin-bottom: 1.5rem; line-height: 1.4;">
+                        A Saga orchestrator manages cross-service transaction consensus. If any step fails, compensating transactions trigger to revert previous operations (dual-commit simulation).
+                    </p>
+                    
+                    <div class="saga-steps">
+                        <!-- Step 1 -->
+                        <div class="saga-step" id="step-auth">
+                            <div class="saga-step-icon">1</div>
+                            <div class="saga-step-content">
+                                <div class="saga-step-title">User JWT Validation</div>
+                                <div class="saga-step-desc" id="step-auth-desc">Pending transaction start...</div>
+                            </div>
+                        </div>
+                        <!-- Step 2 -->
+                        <div class="saga-step" id="step-inventory">
+                            <div class="saga-step-icon">2</div>
+                            <div class="saga-step-content">
+                                <div class="saga-step-title">Product Inventory Reserve</div>
+                                <div class="saga-step-desc" id="step-inventory-desc">Pending transaction start...</div>
+                            </div>
+                        </div>
+                        <!-- Step 3 -->
+                        <div class="saga-step" id="step-payment">
+                            <div class="saga-step-icon">3</div>
+                            <div class="saga-step-content">
+                                <div class="saga-step-title">Payment Capture</div>
+                                <div class="saga-step-desc" id="step-payment-desc">Pending transaction start...</div>
+                            </div>
+                        </div>
+                        <!-- Step 4 -->
+                        <div class="saga-step" id="step-order">
+                            <div class="saga-step-icon">4</div>
+                            <div class="saga-step-content">
+                                <div class="saga-step-title">Order Service Persistence</div>
+                                <div class="saga-step-desc" id="step-order-desc">Pending transaction start...</div>
+                            </div>
+                        </div>
+                        <!-- Step 5 -->
+                        <div class="saga-step" id="step-notification">
+                            <div class="saga-step-icon">5</div>
+                            <div class="saga-step-content">
+                                <div class="saga-step-title">RabbitMQ Notification Queue</div>
+                                <div class="saga-step-desc" id="step-notification-desc">Pending transaction start...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Order Logs -->
+            <div class="card purple-glow" style="height: fit-content;">
+                <h3>Order History & Dispatch Controls</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 1.5rem;">View order state machines. Advance shipment stages manually to trigger RabbitMQ event alerts.</p>
+                
+                <div class="order-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-tbody">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2026 ShopCloud | Built with Docker, Kubernetes & Jenkins CI/CD Pipeline</p>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            renderCart();
+            renderOrderLogs();
+            
+            // Listen to cart update events
+            window.addEventListener("cartUpdated", () => {
+                renderCart();
+            });
+        });
+
+        function renderCart() {
+            const cartList = document.getElementById("cart-list");
+            const checkoutBtn = document.getElementById("checkout-btn");
+            const cartItems = CartService.get();
+
+            if (!cartList) return;
+            cartList.innerHTML = "";
+
+            if (cartItems.length === 0) {
+                cartList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">🛒</p>
+                        <p style="font-size: 0.90rem;">Your shopping cart is empty.</p>
+                        <a href="products.html" class="btn btn-secondary btn-small" style="margin-top: 1rem;">View Products</a>
+                    </div>
+                `;
+                checkoutBtn.disabled = true;
+                document.getElementById("cart-subtotal").textContent = "$0.00";
+                document.getElementById("cart-total").textContent = "$0.00";
+                return;
+            }
+
+            checkoutBtn.disabled = false;
+
+            cartItems.forEach(item => {
+                const itemDiv = document.createElement("div");
+                itemDiv.className = "cart-item";
+                itemDiv.innerHTML = `
+                    <div class="cart-item-details">
+                        <h4>${item.icon || '📦'} ${item.name}</h4>
+                        <p style="font-size: 0.75rem; color: var(--text-muted);">ID: ${item.id}</p>
+                    </div>
+                    <div class="cart-item-controls">
+                        <button onclick="CartService.changeQty('${item.id}', -1)" class="btn btn-secondary btn-small" style="padding: 0.2rem 0.5rem;">-</button>
+                        <span class="cart-qty">${item.quantity}</span>
+                        <button onclick="CartService.changeQty('${item.id}', 1)" class="btn btn-secondary btn-small" style="padding: 0.2rem 0.5rem;">+</button>
+                    </div>
+                    <span class="cart-item-price">$${item.price * item.quantity}</span>
+                `;
+                cartList.appendChild(itemDiv);
+            });
+
+            const total = CartService.getTotal();
+            document.getElementById("cart-subtotal").textContent = `$${total.toFixed(2)}`;
+            document.getElementById("cart-total").textContent = `$${total.toFixed(2)}`;
+        }
+
+        function renderOrderLogs() {
+            const tbody = document.getElementById("orders-tbody");
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            const orders = OrderService.getAll();
+
+            if (orders.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                            No transaction logs recorded.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Show newest orders first
+            [...orders].reverse().forEach(o => {
+                const tr = document.createElement("tr");
+                let statusBadge = "badge-blue";
+                if (o.status === "Processing") statusBadge = "badge-amber";
+                else if (o.status === "Shipped") statusBadge = "badge-blue";
+                else if (o.status === "Delivered") statusBadge = "badge-green";
+
+                const date = new Date(o.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+
+                let actionBtn = "";
+                if (o.status !== "Delivered") {
+                    actionBtn = `<button onclick="advanceStatus('${o.id}')" class="btn btn-secondary btn-small">🚚 Ship Next</button>`;
+                } else {
+                    actionBtn = `<span style="font-size: 0.8rem; color: var(--text-muted);">Completed</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td>
+                        <div style="font-weight: 600; font-family: monospace;">${o.id}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">${date}</div>
+                    </td>
+                    <td><strong style="color: var(--accent-blue);">$${o.total}</strong></td>
+                    <td><span class="badge ${statusBadge}">${o.status}</span></td>
+                    <td>${actionBtn}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function startSagaCheckout() {
+            const sagaCard = document.getElementById("saga-card");
+            const checkoutBtn = document.getElementById("checkout-btn");
+            
+            // Show saga element
+            sagaCard.style.display = "block";
+            checkoutBtn.disabled = true;
+
+            // Reset UI step indicators
+            const steps = ["auth", "inventory", "payment", "order", "notification"];
+            steps.forEach(s => {
+                const el = document.getElementById(`step-${s}`);
+                el.className = "saga-step";
+                document.getElementById(`step-${s}-desc`).textContent = "Awaiting preceding triggers...";
+            });
+
+            // Progress callback handler
+            const progressHandler = (stepId, status, descText) => {
+                const el = document.getElementById(`step-${stepId}`);
+                if (el) {
+                    el.className = `saga-step ${status}`;
+                    const desc = document.getElementById(`step-${stepId}-desc`);
+                    if (desc) desc.textContent = descText;
+                }
+            };
+
+            const result = await OrderService.processCheckout(progressHandler);
+
+            if (result.success) {
+                NotificationService.pushLocalToast("Checkout Success!", `Order ${result.order.id} processed successfully!`, "success");
+                renderCart();
+                renderOrderLogs();
+                // Smooth hide saga details after 6 seconds
+                setTimeout(() => {
+                    sagaCard.style.animation = "slide-in 0.3s ease-out reverse forwards";
+                    setTimeout(() => {
+                        sagaCard.style.display = "none";
+                        sagaCard.style.animation = "";
+                    }, 300);
+                }, 6000);
+            } else {
+                NotificationService.pushLocalToast("Checkout Failed", result.message, "error");
+                checkoutBtn.disabled = false;
+            }
+        }
+
+        function advanceStatus(orderId) {
+            const success = OrderService.advanceOrderStatus(orderId);
+            if (success) {
+                renderOrderLogs();
+            }
+        }
+    </script>
+</body>
+</html>

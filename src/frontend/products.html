@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopCloud - Product Catalog Service</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav>
+        <div class="logo">🛒 ShopCloud</div>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="user.html">Login</a></li>
+            <li><a href="products.html">Products</a></li>
+            <li><a href="orders.html">Orders</a></li>
+            <li><a href="notifications.html">Notifications</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="page-title">
+            <h2>📦 Product Service</h2>
+            <p>Manages the cloud platform product catalog, stock checks, and inventory logs.</p>
+        </div>
+
+        <!-- Filter Bar and Admin Add Button -->
+        <div class="filter-bar">
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="search-input" placeholder="Search catalog items..." oninput="renderProducts()" />
+            </div>
+            
+            <div class="filter-group">
+                <select id="category-filter" onchange="renderProducts()">
+                    <option value="all">All Categories</option>
+                    <option value="Cloud Services">Cloud Services</option>
+                    <option value="DevOps Tools">DevOps Tools</option>
+                    <option value="Messaging">Messaging</option>
+                    <option value="Security">Security</option>
+                </select>
+                
+                <select id="price-sort" onchange="renderProducts()">
+                    <option value="default">Sort by Price</option>
+                    <option value="low-high">Price: Low to High</option>
+                    <option value="high-low">Price: High to Low</option>
+                </select>
+            </div>
+
+            <button onclick="openAddModal()" class="btn" style="padding: 0.8rem 1rem;">➕ Add Product</button>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="grid-3" id="products-grid">
+            <!-- Loaded by JS -->
+        </div>
+    </div>
+
+    <!-- Product CRUD Modal -->
+    <div class="modal-backdrop" id="product-modal-backdrop" onclick="closeModal(event)">
+        <div class="modal" id="product-modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modal-title">Add New Product</h3>
+                <button onclick="closeModal()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="product-form" class="form-box">
+                    <input type="hidden" id="prod-id" />
+                    <div>
+                        <label for="prod-name">Product Name</label>
+                        <input type="text" id="prod-name" placeholder="e.g. Docker Registry Broker" required />
+                    </div>
+                    
+                    <div class="grid-2" style="gap: 1rem;">
+                        <div>
+                            <label for="prod-icon">Icon (Emoji)</label>
+                            <input type="text" id="prod-icon" placeholder="e.g. 🐳" required />
+                        </div>
+                        <div>
+                            <label for="prod-category">Category</label>
+                            <select id="prod-category" required>
+                                <option value="Cloud Services">Cloud Services</option>
+                                <option value="DevOps Tools">DevOps Tools</option>
+                                <option value="Messaging">Messaging</option>
+                                <option value="Security">Security</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid-2" style="gap: 1rem;">
+                        <div>
+                            <label for="prod-price">Price ($)</label>
+                            <input type="number" id="prod-price" placeholder="99" min="1" required />
+                        </div>
+                        <div>
+                            <label for="prod-stock">Inventory Stock</label>
+                            <input type="number" id="prod-stock" placeholder="25" min="0" required />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="prod-desc">Description</label>
+                        <textarea id="prod-desc" rows="3" placeholder="Brief technical summary of product service capability..." required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="saveProduct()" class="btn">Save Product</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2026 ShopCloud | Built with Docker, Kubernetes & Jenkins CI/CD Pipeline</p>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            renderProducts();
+        });
+
+        function renderProducts() {
+            const grid = document.getElementById("products-grid");
+            if (!grid) return;
+            grid.innerHTML = "";
+
+            let products = ProductService.getAll();
+
+            // Apply Search filter
+            const searchVal = document.getElementById("search-input").value.toLowerCase();
+            if (searchVal) {
+                products = products.filter(p => p.name.toLowerCase().includes(searchVal) || p.desc.toLowerCase().includes(searchVal));
+            }
+
+            // Apply Category filter
+            const categoryVal = document.getElementById("category-filter").value;
+            if (categoryVal !== "all") {
+                products = products.filter(p => p.category === categoryVal);
+            }
+
+            // Apply Price sorting
+            const sortVal = document.getElementById("price-sort").value;
+            if (sortVal === "low-high") {
+                products.sort((a, b) => a.price - b.price);
+            } else if (sortVal === "high-low") {
+                products.sort((a, b) => b.price - a.price);
+            }
+
+            if (products.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-secondary);">
+                        <p style="font-size: 1.2rem; margin-bottom: 0.5rem;">🔍 No products match your search criteria.</p>
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">Try clearing your filters or creating a new product.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            products.forEach(p => {
+                const card = document.createElement("div");
+                card.className = "card product-card blue-glow";
+                
+                const stockBadgeClass = p.inventory === 0 ? "badge-red" : p.inventory < 5 ? "badge-amber" : "badge-green";
+                const stockText = p.inventory === 0 ? "Out of Stock" : `${p.inventory} in stock`;
+
+                card.innerHTML = `
+                    <div class="product-image">${p.icon || '📦'}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <h3 style="font-size: 1.15rem; font-weight: 700;">${p.name}</h3>
+                        <span class="badge ${stockBadgeClass}" style="margin-top: 0.2rem;">${stockText}</span>
+                    </div>
+                    <span class="badge badge-blue" style="width: fit-content; margin-bottom: 0.75rem; font-size: 0.7rem;">${p.category}</span>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem; flex: 1;">${p.desc}</p>
+                    
+                    <div class="product-price-row">
+                        <span class="product-price">$${p.price}</span>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="editProduct('${p.id}')" class="btn btn-secondary btn-small">Edit</button>
+                            <button onclick="deleteProduct('${p.id}')" class="btn btn-danger btn-small">Delete</button>
+                            <button onclick="CartService.add('${p.id}')" class="btn btn-small" ${p.inventory <= 0 ? 'disabled' : ''}>🛒 Add</button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // --- MODAL CONTROLS ---
+        function openAddModal() {
+            document.getElementById("modal-title").textContent = "Add New Product";
+            document.getElementById("product-form").reset();
+            document.getElementById("prod-id").value = "";
+            document.getElementById("product-modal-backdrop").classList.add("active");
+        }
+
+        function editProduct(id) {
+            const product = ProductService.getById(id);
+            if (!product) return;
+
+            document.getElementById("modal-title").textContent = "Edit Product";
+            document.getElementById("prod-id").value = product.id;
+            document.getElementById("prod-name").value = product.name;
+            document.getElementById("prod-icon").value = product.icon || "";
+            document.getElementById("prod-category").value = product.category;
+            document.getElementById("prod-price").value = product.price;
+            document.getElementById("prod-stock").value = product.inventory;
+            document.getElementById("prod-desc").value = product.desc;
+
+            document.getElementById("product-modal-backdrop").classList.add("active");
+        }
+
+        function closeModal(e) {
+            document.getElementById("product-modal-backdrop").classList.remove("active");
+        }
+
+        function saveProduct() {
+            const form = document.getElementById("product-form");
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const productData = {
+                name: document.getElementById("prod-name").value,
+                icon: document.getElementById("prod-icon").value,
+                category: document.getElementById("prod-category").value,
+                price: document.getElementById("prod-price").value,
+                inventory: document.getElementById("prod-stock").value,
+                desc: document.getElementById("prod-desc").value
+            };
+
+            const id = document.getElementById("prod-id").value;
+            if (id) {
+                productData.id = id;
+            }
+
+            const res = ProductService.save(productData);
+            if (res.success) {
+                NotificationService.pushLocalToast("Catalog Updated", res.message, "success");
+                closeModal();
+                renderProducts();
+            } else {
+                NotificationService.pushLocalToast("Error", res.message, "error");
+            }
+        }
+
+        function deleteProduct(id) {
+            if (confirm("Are you sure you want to delete this product?")) {
+                const res = ProductService.delete(id);
+                if (res.success) {
+                    NotificationService.pushLocalToast("Product Deleted", res.message, "success");
+                    renderProducts();
+                } else {
+                    NotificationService.pushLocalToast("Error", res.message, "error");
+                }
+            }
+        }
+    </script>
+</body>
+</html>

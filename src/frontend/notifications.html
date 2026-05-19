@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopCloud - Notification Service & RabbitMQ Broker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav>
+        <div class="logo">🛒 ShopCloud</div>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="user.html">Login</a></li>
+            <li><a href="products.html">Products</a></li>
+            <li><a href="orders.html">Orders</a></li>
+            <li><a href="notifications.html">Notifications</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="page-title">
+            <h2>🔔 Notification Service</h2>
+            <p>Monitors message broker queues (RabbitMQ direct exchanges) and dispatches alert streams.</p>
+        </div>
+
+        <div class="checkout-grid">
+            <!-- Left Side: RabbitMQ Simulator -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- MQ Diagram Card -->
+                <div class="card blue-glow" style="min-height: 400px;">
+                    <h3>RabbitMQ Message Broker Simulator</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 2rem;">
+                        Watch messages route in real-time. API Producers push payloads to the Exchange, which filters them into dedicated queues based on routing keys before Consumers pop them.
+                    </p>
+                    
+                    <div id="mq-diagram" class="rabbitmq-container" style="margin-top: 1rem;">
+                        <div class="rabbitmq-diagram">
+                            <!-- Producer Node -->
+                            <div class="rabbitmq-node" id="mq-producer">
+                                <div class="node-icon">📡</div>
+                                <div class="node-label">API Producer</div>
+                                <div class="node-subtext">User & Order APIs</div>
+                            </div>
+                            
+                            <!-- Exchange Node -->
+                            <div class="rabbitmq-node" id="mq-exchange">
+                                <div class="node-icon">🔀</div>
+                                <div class="node-label">amq.direct</div>
+                                <div class="node-subtext">Direct Exchange</div>
+                            </div>
+                            
+                            <!-- Queues Node Group -->
+                            <div class="rabbitmq-node" style="display: flex; flex-direction: column; gap: 3rem; justify-content: center; height: 100%;">
+                                <!-- Queue 1 (User) -->
+                                <div class="rabbitmq-node queue" id="mq-q-user" style="width: 100%;">
+                                    <div class="node-icon" style="position: relative;">
+                                        📥
+                                    </div>
+                                    <div class="node-label">user-queue</div>
+                                    <span class="badge badge-green" style="font-size: 0.65rem;">Idle</span>
+                                </div>
+                                <!-- Queue 2 (Order) -->
+                                <div class="rabbitmq-node queue" id="mq-q-order" style="width: 100%;">
+                                    <div class="node-icon" style="position: relative;">
+                                        📥
+                                    </div>
+                                    <div class="node-label">order-queue</div>
+                                    <span class="badge badge-green" style="font-size: 0.65rem;">Idle</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Consumers Group -->
+                            <div class="rabbitmq-node" style="display: flex; flex-direction: column; gap: 3rem; justify-content: center; height: 100%;">
+                                <!-- Consumer 1 -->
+                                <div class="rabbitmq-node consumer" id="mq-c-user" style="width: 100%;">
+                                    <div class="node-icon">👤</div>
+                                    <div class="node-label">User Consumer</div>
+                                    <div class="node-subtext">Sends Email</div>
+                                </div>
+                                <!-- Consumer 2 -->
+                                <div class="rabbitmq-node consumer" id="mq-c-order" style="width: 100%;">
+                                    <div class="node-icon">🚚</div>
+                                    <div class="node-label">Order Consumer</div>
+                                    <div class="node-subtext">SMS / SMTP</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Connecting SVG lines representing pathways -->
+                        <svg class="rabbitmq-lines" width="100%" height="100%" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0;">
+                            <!-- Line 1: Producer to Exchange -->
+                            <line x1="18%" y1="52%" x2="38%" y2="52%" stroke="rgba(255,255,255,0.08)" stroke-width="2" />
+                            <!-- Line 2: Exchange to User Queue -->
+                            <path d="M 445 y 165 C 445 165, 520 165, 520 70" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2" id="path-to-user-q" />
+                            <!-- Line 3: Exchange to Order Queue -->
+                            <path d="M 445 y 165 C 445 165, 520 165, 520 250" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2" id="path-to-order-q" />
+                            <!-- Line 4: User Queue to User Consumer -->
+                            <line x1="68%" y1="22%" x2="88%" y2="22%" stroke="rgba(255,255,255,0.08)" stroke-width="2" />
+                            <!-- Line 5: Order Queue to Order Consumer -->
+                            <line x1="68%" y1="78%" x2="88%" y2="78%" stroke="rgba(255,255,255,0.08)" stroke-width="2" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Publish custom event card -->
+                <div class="card">
+                    <h3>Publish Custom AMQP Message</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 1.25rem;">Manually inject messages into the exchange to verify consumer routing bindings.</p>
+                    
+                    <form id="mq-form" class="form-box">
+                        <div class="grid-2" style="gap: 1rem;">
+                            <div>
+                                <label for="mq-key">Routing Key</label>
+                                <select id="mq-key" onchange="updatePayloadTemplate()">
+                                    <option value="user.created">user.created (Routes to User Queue)</option>
+                                    <option value="order.placed">order.placed (Routes to Order Queue)</option>
+                                    <option value="order.status_updated">order.status_updated (Routes to Order Queue)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="mq-delivery">Delivery Mode</label>
+                                <select id="mq-delivery">
+                                    <option value="2">2 - PERSISTENT</option>
+                                    <option value="1">1 - TRANSIENT</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="mq-payload">JSON Message Payload</label>
+                            <textarea id="mq-payload" rows="3" style="font-family: monospace; font-size: 0.8rem;"></textarea>
+                        </div>
+                        <button type="button" onclick="publishCustomMessage()" class="btn">🔌 Fling message to exchange</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Side: Live Logs -->
+            <div class="card purple-glow" style="height: fit-content;">
+                <h3>Notification Logs Hub</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 1.5rem;">Audit log of dispatched notification mailers, SMS packets, and in-app socket updates.</p>
+                
+                <div style="max-height: 580px; overflow-y: auto;" id="notif-logs-container">
+                    <!-- Logs list -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2026 ShopCloud | Built with Docker, Kubernetes & Jenkins CI/CD Pipeline</p>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            updatePayloadTemplate();
+            renderNotificationLogs();
+        });
+
+        const templates = {
+            "user.created": {
+                userId: "user_k8s_93810",
+                email: "demo-user@shopcloud.net",
+                name: "Sophia DevOps",
+                action: "register"
+            },
+            "order.placed": {
+                orderId: "ORD-9302-K8S",
+                userEmail: "demo-user@shopcloud.net",
+                userName: "Sophia DevOps",
+                total: 148.00,
+                itemsCount: 2
+            },
+            "order.status_updated": {
+                orderId: "ORD-9302-K8S",
+                userEmail: "demo-user@shopcloud.net",
+                status: "Shipped",
+                carrier: "CloudDHL"
+            }
+        };
+
+        function updatePayloadTemplate() {
+            const key = document.getElementById("mq-key").value;
+            document.getElementById("mq-payload").value = JSON.stringify(templates[key], null, 2);
+        }
+
+        function publishCustomMessage() {
+            const routingKey = document.getElementById("mq-key").value;
+            const payloadStr = document.getElementById("mq-payload").value;
+            
+            let payload;
+            try {
+                payload = JSON.parse(payloadStr);
+            } catch (e) {
+                NotificationService.pushLocalToast("JSON Invalid", "Please check your message payload formatting.", "error");
+                return;
+            }
+
+            // Trigger MQ animation and update notifications list
+            NotificationService.sendMQMessage(routingKey, payload);
+        }
+
+        function renderNotificationLogs() {
+            const container = document.getElementById("notif-logs-container");
+            if (!container) return;
+            container.innerHTML = "";
+
+            const notifs = NotificationService.getAll();
+
+            if (notifs.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                        <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">📭</p>
+                        <p style="font-size: 0.85rem;">No notifications sent yet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            notifs.forEach(n => {
+                const item = document.createElement("div");
+                item.className = "notification-item";
+                
+                let emoji = "🔔";
+                if (n.routingKey === "user.created") emoji = "👤";
+                else if (n.routingKey === "order.placed") emoji = "🧾";
+                else if (n.routingKey === "order.status_updated") emoji = "🚚";
+
+                const date = new Date(n.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+
+                item.innerHTML = `
+                    <div class="notification-icon-wrapper">${emoji}</div>
+                    <div class="notification-content">
+                        <div class="notification-header-row">
+                            <span class="notification-title">${n.title}</span>
+                            <span class="notification-time">${date}</span>
+                        </div>
+                        <p class="notification-body">${n.body}</p>
+                        <div style="margin-top: 0.35rem; display:flex; gap: 0.4rem; flex-wrap:wrap;">
+                            <span class="badge badge-blue" style="font-size: 0.6rem; padding: 0.1rem 0.4rem;">rk: ${n.routingKey}</span>
+                            <span class="badge badge-amber" style="font-size: 0.6rem; padding: 0.1rem 0.4rem;">q: ${n.queue}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+    </script>
+</body>
+</html>

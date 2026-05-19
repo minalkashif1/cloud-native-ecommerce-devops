@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShopCloud - Home</title>
+    <title>ShopCloud - Cloud-Native E-Commerce Dashboard</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -18,33 +18,160 @@
         </ul>
     </nav>
 
-    <section class="hero">
-        <h1>Welcome to ShopCloud</h1>
-        <p>A cloud-native e-commerce platform built with DevOps best practices.</p>
-        <a href="products.html" class="btn">Shop Now</a>
-    </section>
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero" style="padding: 3rem 1.5rem 2rem 1.5rem;">
+            <h1>ShopCloud Dashboard</h1>
+            <p>An enterprise cloud-native microservices platform orchestrating client transactions, catalog CRUD, and RabbitMQ message queues.</p>
+            <div style="display: flex; gap: 0.75rem; justify-content: center; margin-top: -1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                <span class="badge badge-blue">🐳 Dockerized</span>
+                <span class="badge badge-green">☸️ Kubernetes</span>
+                <span class="badge badge-amber">🏗️ Jenkins CI/CD</span>
+                <span class="badge badge-red">🛡️ JWT Auth</span>
+            </div>
+            <a href="products.html" class="btn">🚀 Enter Product Catalog</a>
+        </section>
 
-    <section class="features">
-        <div class="card">
-            <h3>👤 User Service</h3>
-            <p>Secure login and registration with JWT authentication.</p>
+        <!-- Service Health Status Grid -->
+        <h3 style="margin-bottom: 1.25rem; font-family: var(--font-heading); font-size: 1.4rem;">🖥️ Microservices Status Monitor</h3>
+        <div class="system-status-grid">
+            <!-- User Service Card -->
+            <div class="service-status-card">
+                <div class="service-status-header">
+                    <span class="service-name">👤 User Service</span>
+                    <span class="ping-indicator"></span>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.2rem;">
+                    <div><strong>Endpoint:</strong> <code>/api/v1/auth</code></div>
+                    <div><strong>Port:</strong> <code>8081</code></div>
+                </div>
+                <div class="service-stats">
+                    <span>Uptime: 99.98%</span>
+                    <span>Ping: 12ms</span>
+                </div>
+            </div>
+            
+            <!-- Product Service Card -->
+            <div class="service-status-card">
+                <div class="service-status-header">
+                    <span class="service-name">📦 Product Service</span>
+                    <span class="ping-indicator"></span>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.2rem;">
+                    <div><strong>Endpoint:</strong> <code>/api/v1/products</code></div>
+                    <div><strong>Port:</strong> <code>8082</code></div>
+                </div>
+                <div class="service-stats">
+                    <span>Uptime: 99.95%</span>
+                    <span>Ping: 18ms</span>
+                </div>
+            </div>
+            
+            <!-- Order Service Card -->
+            <div class="service-status-card">
+                <div class="service-status-header">
+                    <span class="service-name">🧾 Order Service</span>
+                    <span class="ping-indicator"></span>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.2rem;">
+                    <div><strong>Endpoint:</strong> <code>/api/v1/orders</code></div>
+                    <div><strong>Port:</strong> <code>8083</code></div>
+                </div>
+                <div class="service-stats">
+                    <span>Uptime: 99.91%</span>
+                    <span>Ping: 22ms</span>
+                </div>
+            </div>
+            
+            <!-- Notification Service Card -->
+            <div class="service-status-card">
+                <div class="service-status-header">
+                    <span class="service-name">🔔 Notification Service</span>
+                    <span class="ping-indicator"></span>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.2rem;">
+                    <div><strong>Endpoint:</strong> <code>/api/v1/notifs</code></div>
+                    <div><strong>Port:</strong> <code>8084</code></div>
+                </div>
+                <div class="service-stats">
+                    <span>Uptime: 100.00%</span>
+                    <span>Ping: 8ms</span>
+                </div>
+            </div>
         </div>
-        <div class="card">
-            <h3>📦 Product Service</h3>
-            <p>Browse thousands of products with smart filtering.</p>
+
+        <!-- Live Platform Stats -->
+        <h3 style="margin-bottom: 1.25rem; font-family: var(--font-heading); font-size: 1.4rem;">📊 Live Platform Statistics</h3>
+        <div class="grid-4" style="margin-bottom: 3rem;">
+            <div class="card blue-glow" style="text-align: center;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">👥</div>
+                <h4 style="color: var(--text-secondary); font-size: 0.9rem; text-transform: uppercase;">Registered Users</h4>
+                <div id="stat-users" style="font-size: 2rem; font-weight: 800; font-family: var(--font-heading); color: var(--accent-blue); margin-top: 0.25rem;">0</div>
+            </div>
+            
+            <div class="card purple-glow" style="text-align: center;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🛍️</div>
+                <h4 style="color: var(--text-secondary); font-size: 0.9rem; text-transform: uppercase;">Product Count</h4>
+                <div id="stat-products" style="font-size: 2rem; font-weight: 800; font-family: var(--font-heading); color: var(--accent-purple); margin-top: 0.25rem;">0</div>
+            </div>
+            
+            <div class="card emerald-glow" style="text-align: center;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">💵</div>
+                <h4 style="color: var(--text-secondary); font-size: 0.9rem; text-transform: uppercase;">Orders Placed</h4>
+                <div id="stat-orders" style="font-size: 2rem; font-weight: 800; font-family: var(--font-heading); color: var(--accent-emerald); margin-top: 0.25rem;">0</div>
+            </div>
+            
+            <div class="card blue-glow" style="text-align: center;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">✉️</div>
+                <h4 style="color: var(--text-secondary); font-size: 0.9rem; text-transform: uppercase;">Notifications Sent</h4>
+                <div id="stat-notifications" style="font-size: 2rem; font-weight: 800; font-family: var(--font-heading); color: var(--accent-blue); margin-top: 0.25rem;">0</div>
+            </div>
         </div>
-        <div class="card">
-            <h3>🧾 Order Service</h3>
-            <p>Track your orders in real-time from checkout to delivery.</p>
+
+        <!-- Architectural Diagram Alert -->
+        <div class="card" style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; background: rgba(0, 204, 255, 0.03); border-color: rgba(0, 204, 255, 0.15);">
+            <div style="font-size: 3rem;">⛓️</div>
+            <div style="flex: 1; min-width: 280px;">
+                <h4 style="font-size: 1.15rem; margin-bottom: 0.25rem; color: var(--accent-blue);">Saga Transaction Pattern Simulation</h4>
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">Our Order Service processes checkout transactions using the Saga Pattern to coordinate local operations across independent datastores. Watch it step through Token Verification (JWT), Stock checks, Payment Captures, and RabbitMQ alerts on the Checkout page.</p>
+            </div>
+            <a href="orders.html" class="btn btn-secondary" style="height: fit-content;">Try Checkout Flow</a>
         </div>
-        <div class="card">
-            <h3>🔔 Notification Service</h3>
-            <p>Get instant alerts for orders, deals, and updates.</p>
-        </div>
-    </section>
+    </div>
 
     <footer>
-        <p>© 2025 ShopCloud | Built with Docker, Kubernetes & Jenkins</p>
+        <p>© 2026 ShopCloud | Built with Docker, Kubernetes & Jenkins CI/CD Pipeline</p>
     </footer>
+
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Load and update statistics
+            const users = getDB("sc_users");
+            const products = getDB("sc_products");
+            const orders = getDB("sc_orders");
+            const notifications = getDB("sc_notifications");
+
+            document.getElementById("stat-users").textContent = users.length;
+            document.getElementById("stat-products").textContent = products.length;
+            document.getElementById("stat-orders").textContent = orders.length;
+            document.getElementById("stat-notifications").textContent = notifications.length;
+            
+            // Randomly toggle service indicators slightly to simulate live health updates
+            const indicators = document.querySelectorAll(".ping-indicator");
+            setInterval(() => {
+                indicators.forEach(ind => {
+                    const rnd = Math.random();
+                    if (rnd > 0.98) {
+                        ind.className = "ping-indicator degraded";
+                    } else if (rnd > 0.995) {
+                        ind.className = "ping-indicator down";
+                    } else {
+                        ind.className = "ping-indicator";
+                    }
+                });
+            }, 5000);
+        });
+    </script>
 </body>
 </html>
